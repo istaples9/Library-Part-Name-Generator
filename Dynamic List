@@ -1,0 +1,119 @@
+var sourceSS = SpreadsheetApp.openByUrl('https://docs.google.com/spreadsheets/d/1OPs4j021jC8oK2x9z3KeGmEgAmXBNbMrNJznJ_b6O8Q/edit#gid=1270994393'); 
+var ss = SpreadsheetApp.getActive();
+
+var genSheet = sourceSS.getSheetByName('GENERATOR');
+var catSheet = sourceSS.getSheetByName('CATEGORIES');
+
+var savedPartsRange = genSheet.getRange('A6:A');
+var savedPartsValues = savedPartsRange.getValues();
+
+var cat = genSheet.getRange('A2:A2').getValues()[0][0];
+var subCatRange = genSheet.getRange('B2:B2');
+var subCatValues = subCatRange.getDataValidations()[0][0].getCriteriaValues().flat();
+
+
+//sort saved parts list and make all list cells white
+function sortWhite(range) {
+  savedPartsRange.sort(1);
+  savedPartsRange.setBackground(null);
+}
+
+
+//returns true if the current sub category value in sub category cell exists in corresponding sub category data validation values
+function checkDropDown() {
+  var currentSubCatValue = subCatRange.getValues().flat()[0];
+
+  return subCatValues.includes(currentSubCatValue)
+}
+
+//sets sub category choices based on category selection
+function setDropdown(){
+
+  //gets sub category column headers     
+  var headerRange = catSheet.getRange('A1:Z1');
+  var headerValues = headerRange.getValues()[0];
+
+  for (var i = 0; i < headerValues[0].length; i++) {
+    var header = headerValues[i];
+       
+    if (cat == header) {
+          
+      var headerLetter = columnToLetter(i+1);
+      // get the range where the dynamic dropdown list is kept in the source spreadsheet
+      var dynamicList = catSheet.getRange(headerLetter +  '2:' + headerLetter + '400');
+      var arrayValues = dynamicList.getValues();
+      // define the dropdown/validation rules
+      var rangeRule = SpreadsheetApp.newDataValidation().requireValueInList(arrayValues);
+      // set the dropdown validation for the row
+      subCatRange.setDataValidation(rangeRule); // set range to your range
+    }
+  }
+  //converts column index to letter
+  function columnToLetter(column) {
+    var temp, letter = '';
+    while (column > 0) {
+      temp = (column - 1) % 26;
+      letter = String.fromCharCode(temp + 65) + letter;
+      column = (column - temp - 1) / 26;
+    }
+    return letter;
+  }
+}
+
+
+//creates part number based on row input
+function setTempNo() {
+  savedPartsValues = savedPartsRange.getValues();
+    
+  var stringRange = genSheet.getRange('A2:D2');
+  var stringValues = stringRange.getValues()[0];
+  var aString = stringValues[0].slice(0,1);
+  var bString = stringValues[1].slice(0,2);
+  var cString = stringValues[2].slice(0,3);
+  var dString = stringValues[3];
+
+  var partNo = aString + bString + '-' + cString + '-' + dString;
+  setData(partNo, 'E2:E2');
+
+  //inputs data to range, accepts data and range as args
+  function setData(rangeData, cellRange) { 
+    var partNoRange = genSheet.getRange(cellRange);
+    partNoRange.setValue(rangeData);
+    partNo = rangeData;
+  } 
+} 
+
+
+//saves part to database
+function savePart() {
+    if (checkDropDown() == false) {
+      SpreadsheetApp.getUi().alert('CHANGE SUBCATEGORY SELECTION BEFORE SAVING');
+      return;
+    }
+
+    setTempNo();
+    var tempPartRange = genSheet.getRange('E2:E2');
+    var tempPartNo = tempPartRange.getValues()[0][0];
+
+    //checks if temp part doesn't exists in saved parts database
+    if (savedPartsValues.flat().includes(tempPartNo) == false) {
+      //finds next empty cell in saved parts database and sets cell to temp part number value
+      for (i = 0; i < savedPartsValues.length; i++) {
+        if (savedPartsValues[i] == '') {
+          var newPartIndex = 6 + i;
+          var newPartRange = genSheet.getRange('A' + newPartIndex.toString() + ':' + 'A' + newPartIndex.toString());
+          newPartRange.setValue(tempPartNo);
+          SpreadsheetApp.getUi().alert(tempPartNo);
+
+          savedPartsRange.setBackground(null);
+          newPartRange.setBackground('#93c47d');
+          SpreadsheetApp.getActive().toast('PART SAVED');
+          break;
+        }
+      }
+    }
+    else {
+      SpreadsheetApp.getUi().alert('PART ALREADY EXISTS');
+    }
+    setTempNo();
+  }
