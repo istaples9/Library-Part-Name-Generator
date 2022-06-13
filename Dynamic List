@@ -1,4 +1,4 @@
-var sourceSS = SpreadsheetApp.openByUrl('https://docs.google.com/spreadsheets/d/1OPs4j021jC8oK2x9z3KeGmEgAmXBNbMrNJznJ_b6O8Q/edit#gid=1270994393'); 
+var sourceSS = SpreadsheetApp.openByUrl('https://docs.google.com/spreadsheets/d/1EPKs8enJKGE98S2REqwm8sYScr8gO1bTOr1m1Wdc468/edit#gid=1270994393'); 
 var ss = SpreadsheetApp.getActive();
 
 var genSheet = sourceSS.getSheetByName('GENERATOR');
